@@ -14,7 +14,7 @@ if __name__ == '__main__':
     criterion = nn.NLLLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.003)
 
-    epochs = 10
+    epochs = 5
 
     model = train_classifier(model, criterion, optimizer, trainloader, testloader, epochs)
 
@@ -32,4 +32,3 @@ if __name__ == '__main__':
         output = model.forward(img)
 
     ps = torch.exp(output)
-    1
