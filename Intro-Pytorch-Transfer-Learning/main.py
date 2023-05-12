@@ -1,17 +1,17 @@
-import torch
-import numpy as np
 import matplotlib.pyplot as plt
 from torch import nn
 from torch import optim
-import torch.nn.functional as F
 from torchvision import datasets, transforms, models
 from collections import OrderedDict
+
+from train import *
 
 if __name__ == '__main__':
 
     data_dir = '~/Documents/deep-learning-v2-pytorch-master/intro-to-pytorch/assets/Cat_Dog_data/'
 
     train_en = 0
+    epochs = 1
 
     train_transforms = transforms.Compose([transforms.RandomRotation(30),
                                             transforms.Resize(255),
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     test_data = datasets.ImageFolder(data_dir + '/test', transform=test_transforms)
 
     trainloader = torch.utils.data.DataLoader(train_data, batch_size=64, shuffle=True)
-    testloader = torch.utils.data.DataLoader(test_data, batch_size=64)
+    testloader = torch.utils.data.DataLoader(test_data, batch_size=64, shuffle=True)
 
     model = models.densenet121(pretrained=True)
 
@@ -50,65 +50,43 @@ if __name__ == '__main__':
 
     model.classifier = classifier
 
-    if torch.cuda.is_available():
-        device = 'cuda'
-    else:
-        device = 'cpu'
+    if train_en:
 
-    criterion = nn.NLLLoss()
-    # Only train the classifier parameters, feature parameters are frozen
-    optimizer = optim.Adam(model.classifier.parameters(), lr=0.001)
-
-    model.to(device)
-
-    epochs = 10
-
-    testing_running_loss = np.zeros(epochs)
-    training_running_loss = np.zeros(epochs)
-    for e in range(epochs):
-
-        model.train()
-        for ii, (inputs, labels) in enumerate(trainloader):
-
-            # Move input and label tensors to the GPU
-            inputs, labels = inputs.to(device), labels.to(device)
-
-            outputs = model.forward(inputs)
-            loss = criterion(outputs, labels)
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            training_running_loss[e] += loss.item()
-
+        if torch.cuda.is_available():
+            device = 'cuda'
         else:
+            device = 'cpu'
 
-            training_running_loss[e] /= len(trainloader.dataset)
-            torch.save(model.state_dict(), 'model_epoch_' + str(e) + '.pth')
-            # model.load_state_dict(torch.load('model_epoch_0.pth'))
-            model.eval()
-            accuracy = 0
-            with torch.no_grad():
-                for ii, (inputs, labels) in enumerate(testloader):
-                    # Move input and label tensors to the GPU
-                    inputs, labels = inputs.to(device), labels.to(device)
-                    log_ps = model(inputs)
-                    loss = criterion(log_ps, labels)
-                    testing_running_loss[e] += loss.item()
-                    ps = torch.exp(log_ps)
-                    top_prob, top_class = ps.topk(1, dim=1)
-                    equals = top_class.view(labels.shape) == labels
-                    accuracy += torch.mean(equals.type(torch.FloatTensor))
-            accuracy /= testloader.__len__()
-            testing_running_loss[e] /= len(testloader.dataset)
-            print("Epoch: {}/{} ".format(e + 1, epochs), "Accuracy: {:.3f}% ".format(accuracy.item() * 100),
-                  "Training Loss: {:.5f} ".format(training_running_loss[e]),
-                  "Testing Loss: {:.5f}".format(testing_running_loss[e]))
+        criterion = nn.NLLLoss()
+        # Only train the classifier parameters, feature parameters are frozen
+        optimizer = optim.Adam(model.classifier.parameters(), lr=0.001)
 
-    plt.figure
-    plt.plot(range(epochs), training_running_loss, label='Training loss')
-    plt.plot(range(epochs), testing_running_loss, 'r', label='Validation loss')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.show()
+        model, training_running_loss, testing_running_loss = train_model(model, criterion, optimizer, trainloader, testloader, device, epochs)
+
+        plt.figure
+        plt.plot(range(epochs), training_running_loss, label='Training loss')
+        plt.plot(range(epochs), testing_running_loss, 'r', label='Validation loss')
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+        plt.legend()
+        plt.show()
+
+        inputs, labels = next(iter(testloader))
+        log_ps = model(inputs)
+        ps = torch.exp(log_ps)
+        top_prob, top_class = ps.topk(1, dim=1)
+        equals = top_class.view(labels.shape) == labels
+        print("Accuracy: {:.3f}% ".format(np.mean(equals.numpy()) * 100))
+        1
+
+    else:
+
+        model.load_state_dict(torch.load('model_epoch_0.pth'))
+        inputs, labels = next(iter(testloader))
+        #for ii, (inputs, labels) in enumerate(testloader):
+        log_ps = model(inputs)
+        ps = torch.exp(log_ps)
+        top_prob, top_class = ps.topk(1, dim=1)
+        equals = top_class.view(labels.shape) == labels
+        print("Accuracy: {:.3f}% ".format(np.mean(equals.numpy()) * 100))
+        1
