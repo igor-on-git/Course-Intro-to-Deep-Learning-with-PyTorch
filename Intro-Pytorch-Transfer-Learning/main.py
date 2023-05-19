@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import torch
 from torch import nn
 from torch import optim
 from torchvision import datasets, transforms, models
@@ -10,7 +11,7 @@ if __name__ == '__main__':
 
     data_dir = '~/Documents/deep-learning-v2-pytorch-master/intro-to-pytorch/assets/Cat_Dog_data/'
 
-    train_en = 0
+    train_en = 1
     epochs = 1
 
     train_transforms = transforms.Compose([transforms.RandomRotation(30),
@@ -53,9 +54,9 @@ if __name__ == '__main__':
     if train_en:
 
         if torch.cuda.is_available():
-            device = 'cuda'
+            device = torch.device('cuda')
         else:
-            device = 'cpu'
+            device = torch.device('cpu')
 
         criterion = nn.NLLLoss()
         # Only train the classifier parameters, feature parameters are frozen
@@ -82,6 +83,7 @@ if __name__ == '__main__':
     else:
 
         model.load_state_dict(torch.load('model_epoch_0.pth'))
+        model.eval()
         inputs, labels = next(iter(testloader))
         #for ii, (inputs, labels) in enumerate(testloader):
         log_ps = model(inputs)
