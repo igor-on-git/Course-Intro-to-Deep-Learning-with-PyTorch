@@ -44,7 +44,7 @@ if __name__ == '__main__':
     # print(net)
 
     batch_size = 128
-    seq_length = 100
+    seq_length = 200
     n_epochs = 50  # start small if you are just testing initial behavior
 
     # train the model

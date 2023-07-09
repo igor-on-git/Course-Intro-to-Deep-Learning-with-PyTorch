@@ -101,6 +101,7 @@ def train(net, data, train_on_gpu, epochs=10, batch_size=10, seq_length=50, lr=0
     counter = 0
     n_chars = len(net.chars)
     best_val_loss = 1e6
+    miss_counter = 0
     for e in range(epochs):
         # initialize hidden state
         h = net.init_hidden(batch_size)
@@ -166,4 +167,10 @@ def train(net, data, train_on_gpu, epochs=10, batch_size=10, seq_length=50, lr=0
         if np.mean(val_losses) < best_val_loss:
             best_val_loss = np.mean(val_losses)
             net.save_net_state()
+            miss_counter = 0
             print('state saved!')
+        else:
+            miss_counter += 1
+
+        if miss_counter > 5:
+            break
